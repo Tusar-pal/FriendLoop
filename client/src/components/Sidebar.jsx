@@ -10,7 +10,10 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     const {signOut} = useClerk();
   return (
     <div
-      className={`w-60 xl:w-72 bg-white border-r border-gray-200 flex flex-col max-sm:absolute top-0 bottom-0 z-20 ${sidebarOpen ? "translate-x-0" : "max-sm:translate-x-full"} transition-all duration-300`}
+      className={`w-60 xl:w-72 h-screen sticky top-0 bg-white border-r border-gray-200 flex flex-col
+  max-sm:absolute max-sm:top-0 max-sm:bottom-0 z-20
+  ${sidebarOpen ? "translate-x-0" : "max-sm:translate-x-full"}
+  transition-all duration-300`}
     >
       {/* Logo */}
       <div onClick={() => navigate("/")} className="w-full">
@@ -33,7 +36,6 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       {/* Bottom Section */}
       <div className="px-6 pb-4 space-y-4">
         {/* Create Post Button */}
-        
 
         {/* User Section */}
         <div className="border-t pt-4 flex items-center justify-between">

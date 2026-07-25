@@ -9,27 +9,20 @@ const Feed = () => {
   const [feeds, setFeeds] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchFeeds = async () => {
+  useEffect(() => {
     setFeeds(dummyPostsData);
     setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchFeeds();
   }, []);
 
   return !loading ? (
-    <div className="min-h-screen overflow-y-auto  py-6 flex justify-center">
-      <div className="flex w-full max-w-6xl gap-8">
+    <div className="py-6">
+      <div className="max-w-7xl mx-auto flex gap-8 px-4">
         {/* Feed Section */}
-        <div className="flex-1 flex flex-col items-center">
-          {/* SAME WIDTH CONTAINER */}
+        <div className="flex-1 flex justify-center">
           <div className="w-full max-w-2xl">
-            {/* Stories */}
             <StoriesBar />
 
-            {/* Posts */}
-            <div className="p-4 space-y-6">
+            <div className="mt-4 space-y-6">
               {feeds.map((post) => (
                 <PostCard key={post._id} post={post} />
               ))}
@@ -38,23 +31,27 @@ const Feed = () => {
         </div>
 
         {/* Right Sidebar */}
-        <div className="max-xl:hidden sticky top-0">
-          <div className="max-w-xs bg-white text-xs p-4 rounded-md inline-flex flex-col gap-2 shadow">
+        <div className="hidden xl:block w-80 sticky top-6 self-start">
+          <div className="bg-white rounded-md shadow p-4 text-xs flex flex-col gap-2">
             <h3 className="text-slate-800 font-semibold">Sponsored</h3>
+
             <img
               src={assets.sponsored_img}
               alt=""
-              className="w-75 h-50 rounded-md"
+              className="w-full rounded-md"
             />
+
             <p className="text-slate-600">Email marketing</p>
+
             <p className="text-slate-400">
-              Supercharge our marketing with a powerful, easy-to-use platfrom
+              Supercharge our marketing with a powerful, easy-to-use platform
               built for results.
             </p>
           </div>
-          <h1 className="font-semibold text-gray-700">
+
+          <div className="mt-4">
             <ResentMessages />
-          </h1>
+          </div>
         </div>
       </div>
     </div>
