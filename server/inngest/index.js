@@ -2,6 +2,7 @@ import { Inngest } from "inngest";
 import User from "../models/user.js";
 import Connection from "../models/Connection.js";
 import sendEmail from "../configs/nodeMailer.js";
+import Story from "../models/Story.js";
 
 export const inngest = new Inngest({
   id: "friendLoop-app",
@@ -196,12 +197,42 @@ const sendNewConnectionRequestReminder = inngest.createFunction(
   }
 );
 
+// Ingest function to delete story after 24 hours
 
+const deleteStory = inngest.createFunction(
+  {
+    id: "story-delete",
+    triggers: [
+      {
+        event: "app/story.delete",
+      },
+    ],
+  },
+  async ({ event, step }) => {
+    const { storyId } = event.data;
+
+    const in24Hours = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await step.sleepUntil("wait-for-24-hours", in24Hours);
+
+    await step.run("delete-story", async () => {
+      await Story.findByIdAndDelete(storyId);
+
+      return {
+        message: "Story deleted.",
+      };
+    });
+  }
+);
+
+
+// Create an empty arrya where we'll export future inngest function
 export const functions = [
   syncUserCreation,
   syncUserUpdation,
   syncUserDeletion,
   sendNewConnectionRequestReminder,
+  deleteStory
 ];
 
 

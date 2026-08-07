@@ -1,9 +1,11 @@
-import ImageKit from '@imagekit/nodejs'
+import dotenv from "dotenv";
+dotenv.config();
 
-var imagrkit = new ImageKit({
-    publicKey : process.env.IMAGEKIT_PUBLIC_KRY,
-    privateKey : process.env.IMAGEKIT_PRIVATE_KRY ,
-    urlEndpoint : process.env.IMAGEKIT_URL_ENDPOINT
-})
+import ImageKit from "imagekit";
+const imageKit = new ImageKit({
+  publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+  privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+  urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
+});
 
-export default ImageKit;
+export default imageKit;
