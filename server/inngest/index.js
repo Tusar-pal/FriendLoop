@@ -3,6 +3,7 @@ import User from "../models/user.js";
 import Connection from "../models/Connection.js";
 import sendEmail from "../configs/nodeMailer.js";
 import Story from "../models/Story.js";
+import Message from "../models/Message.js";
 
 export const inngest = new Inngest({
   id: "friendLoop-app",
@@ -225,6 +226,77 @@ const deleteStory = inngest.createFunction(
   }
 );
 
+const sendNotificationOfUnseenMessages = inngest.createFunction(
+  {
+    id: "send-unseen-messages-notification",
+
+    triggers: {
+      cron: "TZ=America/New_York 0 9 * * *",
+    },
+  },
+
+  async ({ step }) => {
+    const messages = await Message.find({
+      seen: false,
+    }).populate("to_user_id");
+
+    const unseenCount = {};
+
+    messages.forEach((message) => {
+      const userId = message.to_user_id._id.toString();
+
+      unseenCount[userId] =
+        (unseenCount[userId] || 0) + 1;
+    });
+
+    for (const userId in unseenCount) {
+      const user = await User.findById(userId);
+
+      if (!user) continue;
+
+      const subject = `You have ${unseenCount[userId]} unseen messages`;
+
+      const body = `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Hi ${user.full_name},</h2>
+
+          <p>
+            You have ${unseenCount[userId]} unseen messages
+          </p>
+
+          <p>
+            Click 
+            <a 
+              href="${process.env.FRONTEND_URL}/messages"
+              style="color: #10b981;"
+            >
+              here
+            </a>
+            to view them
+          </p>
+
+          <br/>
+
+          <p>
+            Thanks,<br/>
+            PingUp - Stay Connected
+          </p>
+        </div>
+      `;
+
+      await sendEmail({
+        to: user.email,
+        subject,
+        body,
+      });
+    }
+
+    return {
+      message: "Notification sent.",
+    };
+  }
+);
+
 
 // Create an empty arrya where we'll export future inngest function
 export const functions = [
@@ -232,7 +304,8 @@ export const functions = [
   syncUserUpdation,
   syncUserDeletion,
   sendNewConnectionRequestReminder,
-  deleteStory
+  deleteStory,
+  sendNotificationOfUnseenMessages
 ];
 
 

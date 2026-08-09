@@ -11,6 +11,7 @@ import { inngest, functions } from "./inngest/index.js";
 import userRouter from "./routes/userrRoutes.js";
 import postRouter from "./routes/postRoutes.js";
 import storyRouter from "./routes/storyRoutes.js";
+import messageRouter from "./routes/messageRoutes.js";
 
 const app = express();
 
@@ -41,7 +42,7 @@ app.use("/api/user", userRouter);
 
 app.use('/api/post',postRouter)
 app.use('/api/story',storyRouter)
-
+app.use('/api/message',messageRouter)
 // Start Server
 const PORT = process.env.PORT || 3000;
 
