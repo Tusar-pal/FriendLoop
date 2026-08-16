@@ -28,19 +28,16 @@ const connectionSlice = createSlice({
     reducers: {},
 
     extraReducers: (builder) => {
-        builder.addCase(
-            fetchConnections.fulfilled,
-            (state, action) => {
-                if (action.payload) {
-                    state.connections = action.payload.connection;
-                    state.pendingConnections =
-                        action.payload.pendingConnection;
-                    state.followers = action.payload.followers;
-                    state.following = action.payload.following;
-                }
-            }
-        );
-    },
+  builder.addCase(fetchConnections.fulfilled, (state, action) => {
+    if (action.payload) {
+      state.connections = action.payload.connections || [];
+      state.pendingConnections =
+        action.payload.pendingConnections || [];
+      state.followers = action.payload.followers || [];
+      state.following = action.payload.following || [];
+    }
+  });
+}
 });
 
 export default connectionSlice.reducer;

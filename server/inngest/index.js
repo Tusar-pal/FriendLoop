@@ -22,49 +22,63 @@ const syncUserCreation = inngest.createFunction(
       },
     ],
   },
+
   async ({ event }) => {
+    try {
+      console.log("🔥 USER CREATED EVENT RECEIVED");
+      console.log("🔥 EVENT DATA:", event.data);
 
-    console.log("🔥 USER CREATED EVENT");
-    console.log("EVENT DATA:", event.data);
+      const {
+        id,
+        first_name,
+        last_name,
+        email_addresses,
+        image_url,
+      } = event.data;
 
-    const {
-      id,
-      first_name,
-      last_name,
-      email_addresses,
-      image_url,
-    } = event.data;
+      console.log("🔥 CLERK ID:", id);
+      console.log("🔥 EMAIL:", email_addresses);
 
-    if (!id) {
-      throw new Error("Clerk user ID missing");
+      if (!id) {
+        throw new Error("Clerk user ID is missing");
+      }
+
+      if (!email_addresses?.length) {
+        throw new Error("Email address is missing");
+      }
+
+      let username =
+        email_addresses[0].email_address.split("@")[0];
+
+      const existingUser = await User.findOne({ username });
+
+      if (existingUser) {
+        username = `${username}${Math.floor(Math.random() * 10000)}`;
+      }
+
+      console.log("🔥 USERNAME:", username);
+
+      const newUser = await User.create({
+        _id: id,
+        email: email_addresses[0].email_address,
+        full_name: `${first_name || ""} ${last_name || ""}`.trim(),
+        profile_picture: image_url || "",
+        username,
+      });
+
+      console.log("✅ USER CREATED IN MONGODB:", newUser);
+
+      return {
+        success: true,
+        userId: newUser._id,
+      };
+
+    } catch (error) {
+
+      console.error("❌ USER CREATION ERROR:", error);
+
+      throw error;
     }
-
-    if (!email_addresses?.length) {
-      throw new Error("Clerk email address missing");
-    }
-
-    let username = email_addresses[0].email_address.split("@")[0];
-
-    const existingUser = await User.findOne({ username });
-
-    if (existingUser) {
-      username = `${username}${Math.floor(Math.random() * 10000)}`;
-    }
-
-    const newUser = await User.create({
-      _id: id,
-      email: email_addresses[0].email_address,
-      full_name: `${first_name || ""} ${last_name || ""}`.trim(),
-      profile_picture: image_url || "",
-      username,
-    });
-
-    console.log("✅ USER CREATED:", newUser);
-
-    return {
-      success: true,
-      userId: newUser._id
-    };
   }
 );
 
