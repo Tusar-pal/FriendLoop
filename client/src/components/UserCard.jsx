@@ -1,9 +1,10 @@
 import React from "react";
 import { dummyUserData } from "../assets/assets";
 import { MapPin, MessageCircle, Plus, UserPlus } from "lucide-react";
+import { useSelector } from "react-redux";
 
 const UserCard = ({ user }) => {
-  const currentUser = dummyUserData;
+  const currentUser = useSelector((state) => state.user.value);
   const handleFollow = async () => {};
 
   const handleConnectionRequest = async () => {};
@@ -20,14 +21,12 @@ const UserCard = ({ user }) => {
         />
 
         <p className="mt-4 font-semibold">{user.full_name} </p>
-        {user.username && (
-          <p className="text-gray-500 mt-2 text-center text-sm px-4">
-            @{user.username}
-          </p>
-        )}
+        <p className="text-gray-500 mt-2 text-center text-sm px-4">
+          {user.username ? `@${user.username}` : user.email}
+        </p>
         {user.bio && (
           <p className="text-gray-500 mt-2 text-center text-sm px-4">
-            @{user.bio}
+            {user.bio}
           </p>
         )}
       </div>

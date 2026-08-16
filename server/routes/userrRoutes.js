@@ -8,7 +8,15 @@ import { getUserRecentMessages } from '../controller/messageController.js';
 const userRouter = express.Router();
 
 userRouter.get('/data',protect,getUserData);
-userRouter.post('/update',upload.fields([{name:'profile',maxCount:1},{name:'coveer',maxCount:1}]),protect,updateUserData);
+userRouter.post(
+    '/update',
+    upload.fields([
+        { name: 'profile', maxCount: 1 },
+        { name: 'cover', maxCount: 1 }
+    ]),
+    protect,
+    updateUserData
+);
 
 userRouter.post('/dicover',protect,discoverUsers);
 userRouter.post('/follow',protect,followUser);

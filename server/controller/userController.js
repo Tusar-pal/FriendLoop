@@ -6,98 +6,129 @@ import Post from '../models/Post.js';
 import { inngest } from '../inngest/index.js';
 
 // Get user data using userId
-export const getUserData = async (req,res)=>{
+export const getUserData = async (req, res) => {
     try {
-        const {userId} = req.auth();
-        const user = await User.findById(userId)
-        if(!user){
-            return res.json({success:false , message:"User not found"})
+        const { userId } = req.auth();
+
+        console.log("🔥 CLERK USER ID:", userId);
+
+        const user = await User.findById(userId);
+
+        console.log("🔥 MONGODB USER:", user);
+
+        if (!user) {
+            return res.json({
+                success: false,
+                message: "User not found"
+            });
         }
-        res.json({success:true,user})
+
+        res.json({
+            success: true,
+            user
+        });
+
     } catch (error) {
         console.log(error);
-        res.json({success:false , message:error.message})
+
+        res.json({
+            success: false,
+            message: error.message
+        });
     }
-}
+};
 
 //Update User data
-export const updateUserData = async (req,res)=>{
+export const updateUserData = async (req, res) => {
     try {
-        const {userId} = req.auth();
-        let {username, bio, location, full_name} = req.body;
-        const tempUser = await User.findById(userId);
-        !username && (username = tempUser.username)
+        const { userId } = req.auth();
 
-        if(tempUser.username !== username){
-            const user = await User.findOne({username})
-
-            if(user){
-                // we will not change the username if it is already taken 
-
-                username = tempUser.username
-            }
-        }
-
-        const updatedData ={
+        const {
             username,
             bio,
             location,
             full_name
+        } = req.body;
+
+        console.log("Clerk User ID:", userId);
+        console.log("Username received:", username);
+
+        const tempUser = await User.findById(userId);
+
+        if (!tempUser) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
         }
 
-        const profile = req.files.profile && req.files.profile[0]
+        // Check username
+        const newUsername = username?.trim();
 
-        const cover = req.files.cover && req.files.cover[0]
-
-        if(profile){
-            const buffer = fs.readFileSync(profile.path)
-            const response = await imagekit.upload({
-                file:buffer,
-                fileName : profile.originalname,
-            })
-
-            const url = imagekit.url({
-                path:response.filePath,
-                transformation: [
-                    {quality : 'auto'},
-                    {format: 'webp'},
-                    {width:'512'}
-                ]
-            })
-            updatedData.profile_picture = url;
+        if (!newUsername) {
+            return res.status(400).json({
+                success: false,
+                message: "Username cannot be empty"
+            });
         }
 
+        // Check duplicate username
+        if (newUsername !== tempUser.username) {
+            const existingUser = await User.findOne({
+                username: newUsername,
+                _id: { $ne: userId }
+            });
 
-        // cover image
-
-        if(cover){
-            const buffer = fs.readFileSync(cover.path)
-            const response = await imagekit.upload({
-                file:buffer,
-                fileName : profile.originalname,
-            })
-
-            const url = imagekit.url({
-                path:response.filePath,
-                transformation: [
-                    {quality : 'auto'},
-                    {format: 'webp'},
-                    {width:'1280'}
-                ]
-            })
-            updatedData.cover_photo = url;
+            if (existingUser) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Username already exists"
+                });
+            }
         }
 
-        const user = await User.findByIdAndUpdate(userId , updatedData, {new : true})
+        const updatedData = {
+            username: newUsername,
+            bio: bio?.trim() || "",
+            location: location?.trim() || "",
+            full_name: full_name?.trim() || ""
+        };
 
-        res.json({success:true , user, message:"Profile updated sucessfully"})
+        console.log("Data going to MongoDB:", updatedData);
 
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { $set: updatedData },
+            {
+                new: true,
+                runValidators: true
+            }
+        );
+
+        console.log("Updated MongoDB User:", updatedUser);
+
+        if (!updatedUser) {
+            return res.status(404).json({
+                success: false,
+                message: "User update failed"
+            });
+        }
+
+        return res.json({
+            success: true,
+            user: updatedUser,
+            message: "Profile updated successfully"
+        });
 
     } catch (error) {
-        console.log(error);
-        res.json({success:false , message:error.message})
+        console.error("UPDATE USER ERROR:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
-}
+};
 
 // find user using username, email , location, name
 
@@ -230,24 +261,48 @@ export const sendConnectionRequesst = async(req,res) => {
 
 // Get user connection
 
-export const getUserConnection = async(req,res) => {
+export const getUserConnection = async (req, res) => {
     try {
-        const {userId} = req.auth()
-        
-        const user = await User.findById(userId).populate('connection followers following')
-        const connection = user.connections
-        const followers = user.followers
-        const following = user.following
+        const { userId } = req.auth();
 
-        const pendingConnection = (await Connection.find({to_user_id : userId , status: 'pending'}).populate('from_user_id')).map(connection => connection.from_user_id)
+        const user = await User.findById(userId)
+            .populate('connections followers following');
 
-        res.json({success:true , connection , followers , following , pendingConnection})
+        if (!user) {
+            return res.json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        const connections = user.connections;
+        const followers = user.followers;
+        const following = user.following;
+
+        const pendingConnections = (
+            await Connection.find({
+                to_user_id: userId,
+                status: 'pending'
+            }).populate('from_user_id')
+        ).map(connection => connection.from_user_id);
+
+        res.json({
+            success: true,
+            connections,
+            followers,
+            following,
+            pendingConnections
+        });
 
     } catch (error) {
         console.log(error);
-        res.json({success: false , message:error.message})
+
+        res.json({
+            success: false,
+            message: error.message
+        });
     }
-}
+};
 
 
 // Accept Connection Request

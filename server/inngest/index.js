@@ -23,6 +23,10 @@ const syncUserCreation = inngest.createFunction(
     ],
   },
   async ({ event }) => {
+
+    console.log("🔥🔥 CLERK USER CREATED EVENT RECEIVED 🔥🔥");
+    console.log("EVENT DATA:", event.data);
+
     const {
       id,
       first_name,
@@ -31,7 +35,8 @@ const syncUserCreation = inngest.createFunction(
       image_url,
     } = event.data;
 
-    let username = email_addresses[0].email_address.split("@")[0];
+    let username =
+      email_addresses[0].email_address.split("@")[0];
 
     const existingUser = await User.findOne({ username });
 
@@ -39,13 +44,15 @@ const syncUserCreation = inngest.createFunction(
       username = `${username}${Math.floor(Math.random() * 10000)}`;
     }
 
-    await User.create({
+    const newUser = await User.create({
       _id: id,
       email: email_addresses[0].email_address,
-      full_name: `${first_name} ${last_name}`,
+      full_name: `${first_name || ""} ${last_name || ""}`.trim(),
       profile_picture: image_url,
       username,
     });
+
+    console.log("✅ NEW USER CREATED:", newUser);
   }
 );
 
