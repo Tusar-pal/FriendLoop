@@ -24,49 +24,121 @@ const syncUserCreation = inngest.createFunction(
   },
 
   async ({ event }) => {
+    console.log("🔥🔥 USER CREATED EVENT RECEIVED 🔥🔥");
+    console.log("🔥 EVENT DATA:", JSON.stringify(event.data, null, 2));
+
     try {
-      console.log("🔥 USER CREATED EVENT RECEIVED");
-      console.log("🔥 EVENT DATA:", event.data);
+      const user = event.data;
 
       const {
         id,
         first_name,
         last_name,
         email_addresses,
+        primary_email_address_id,
         image_url,
-      } = event.data;
+      } = user;
 
       console.log("🔥 CLERK ID:", id);
-      console.log("🔥 EMAIL:", email_addresses);
+      console.log("🔥 EMAIL ADDRESSES:", email_addresses);
+      console.log(
+        "🔥 PRIMARY EMAIL ID:",
+        primary_email_address_id
+      );
+
+      // -----------------------------
+      // Check Clerk ID
+      // -----------------------------
 
       if (!id) {
         throw new Error("Clerk user ID is missing");
       }
 
-      if (!email_addresses?.length) {
-        throw new Error("Email address is missing");
+      // -----------------------------
+      // Find primary email
+      // -----------------------------
+
+      const primaryEmail = email_addresses?.find(
+        (email) =>
+          email.id === primary_email_address_id
+      );
+
+      if (!primaryEmail) {
+        throw new Error(
+          "Primary email address not found"
+        );
       }
 
-      let username =
-        email_addresses[0].email_address.split("@")[0];
+      const email = primaryEmail.email_address;
 
-      const existingUser = await User.findOne({ username });
+      console.log("🔥 PRIMARY EMAIL:", email);
+
+      // -----------------------------
+      // Create username
+      // -----------------------------
+
+      let username = email
+        .split("@")[0]
+        .toLowerCase();
+
+      const existingUser = await User.findOne({
+        username,
+      });
 
       if (existingUser) {
-        username = `${username}${Math.floor(Math.random() * 10000)}`;
+        username =
+          username +
+          Math.floor(Math.random() * 10000);
       }
 
       console.log("🔥 USERNAME:", username);
 
+      // -----------------------------
+      // Check if Clerk user already exists
+      // -----------------------------
+
+      const existingClerkUser =
+        await User.findById(id);
+
+      if (existingClerkUser) {
+        console.log(
+          "⚠️ USER ALREADY EXISTS:",
+          id
+        );
+
+        return {
+          success: true,
+          message: "User already exists",
+          userId: id,
+        };
+      }
+
+      // -----------------------------
+      // Create MongoDB user
+      // -----------------------------
+
       const newUser = await User.create({
         _id: id,
-        email: email_addresses[0].email_address,
-        full_name: `${first_name || ""} ${last_name || ""}`.trim(),
+        email: email,
+        full_name:
+          `${first_name || ""} ${
+            last_name || ""
+          }`.trim() || "User",
+        username: username,
         profile_picture: image_url || "",
-        username,
+        bio: "Hey there! I am using FrindLoop",
+        cover_photo: "",
+        location: "",
+        followers: [],
+        following: [],
+        connections: [],
       });
 
-      console.log("✅ USER CREATED IN MONGODB:", newUser);
+      console.log(
+        "✅✅ USER CREATED IN MONGODB ✅✅"
+      );
+
+      console.log(newUser);
 
       return {
         success: true,
@@ -74,8 +146,12 @@ const syncUserCreation = inngest.createFunction(
       };
 
     } catch (error) {
+      console.error(
+        "❌❌ USER CREATION ERROR ❌❌"
+      );
 
-      console.error("❌ USER CREATION ERROR:", error);
+      console.error(error);
+      console.error(error.message);
 
       throw error;
     }
