@@ -1,37 +1,107 @@
 import React, { useEffect, useRef, useState } from "react";
 import { dummyMessagesData, dummyUserData } from "../assets/assets";
 import { ImageIcon, SendHorizontal } from "lucide-react";
-
+import { useDispatch, useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
+import { useAuth } from "@clerk/react";
+import api from "../api/axios";
+import toast from "react-hot-toast";
+import {
+  addMessage,
+  fetchMessages,
+  resetMessages,
+} from "../features/messages/messagesSlice";
 const ChatBox = () => {
-  const [messages, setMessages] = useState(dummyMessagesData);
+  const messages = useSelector((state) => state.messages.messages || []);
+
+  const { userId } = useParams();
+  const { getToken } = useAuth();
+  const dispatch = useDispatch();
+
   const [text, setText] = useState("");
   const [image, setImage] = useState(null);
-  const [user, setUser] = useState(dummyUserData);
+  const [user, setUser] = useState(null);
 
   const messagesEndRef = useRef(null);
 
+  const connections = useSelector((state) => state.connections.connections);
+
+  const fetchUserMessages = async () => {
+    try {
+      const token = await getToken();
+
+      dispatch(
+        fetchMessages({
+          token,
+          userId,
+        }),
+      );
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
   const sendMessage = async () => {
-    if (!text && !image) return;
+    try {
+      if (!text && !image) return;
 
-    const newMessage = {
-      _id: Date.now(),
-      text: text,
-      message_type: image ? "image" : "text",
-      media_url: image || null,
-      from_user_id: user._id,
-      to_user_id: "other_user_id",
-      createdAt: new Date().toISOString(),
-    };
+      const token = await getToken();
 
-    setMessages((prev) => [...prev, newMessage]);
-    setText("");
-    setImage(null);
+      const formData = new FormData();
+
+      formData.append("to_user_id", userId);
+      formData.append("text", text);
+
+      if (image) {
+        formData.append("image", image);
+      }
+
+      const { data } = await api.post(
+        "/api/message/get",
+        { to_user_id: userId },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (data.success) {
+        setText("");
+        setImage(null);
+
+        dispatch(addMessage(data.message));
+      } else {
+        throw new Error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    fetchUserMessages();
 
+    return () => {
+      dispatch(resetMessages());
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (connections.length > 0) {
+      const foundUser = connections.find(
+        (connection) => connection._id === userId,
+      );
+
+      setUser(foundUser);
+    }
+  }, [connections, userId]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }, [messages]);
   return (
     user && (
       <div className="flex flex-col h-screen">

@@ -90,32 +90,61 @@ export const sendMessage = async (req,res)=>{
 
 
 // Get chat messages
-export const getChatMessage = async (req,res)=>{
+export const getChatMessage = async (req, res) => {
     try {
         const { userId } = req.auth();
-        const {to_user_id} = req.body;
+        const { to_user_id } = req.body;
+
+        console.log("GET CHAT USER:", userId);
+        console.log("CHAT WITH:", to_user_id);
+
         const messages = await Message.find({
             $or: [
-                {from_user_id : userId, to_user_id},
-                {from_user_id : to_user_id, to_user_id: userId},
+                {
+                    from_user_id: userId,
+                    to_user_id: to_user_id
+                },
+                {
+                    from_user_id: to_user_id,
+                    to_user_id: userId
+                }
             ]
-        }).sort({created_at: -1})
-        // mark messages as seen
-        await Message.updateMany({from_user_id: to_user_id, to_user_id: userId} , {seen: true})
-        res.json({success: true , messages});
-    } catch (error) {
-        console.log(error);
-        res.json({success:false , message: error.message});
-    }
-}
+        }).sort({ created_at: -1 });
 
+        await Message.updateMany(
+            {
+                from_user_id: to_user_id,
+                to_user_id: userId
+            },
+            {
+                seen: true
+            }
+        );
+
+        res.json({
+            success: true,
+            messages
+        });
+
+    } catch (error) {
+        console.log("GET CHAT ERROR:", error);
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
 
 export const getUserRecentMessages = async (req,res)=>{
     try {
         
         const {userId} = req.auth();
-        // populate -> To fetch the complete data of the related document.
-        const messages = await Message.find({to_user_id:userId}.populate('from_user_id to_user_id')).sort({created_at: -1});
+        const messages = await Message.find({
+    to_user_id: userId
+})
+.populate('from_user_id to_user_id')
+.sort({ created_at: -1 });
 
         res.json({success:true , messages})
 
