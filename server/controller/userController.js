@@ -335,6 +335,19 @@ export const getUserConnection = async (req, res) => {
 
         console.log("CURRENT USER ID:", userId);
 
+        const pendingRequests = await Connection.find({
+            status: "pending"
+        });
+
+        console.log("ALL PENDING REQUESTS:", pendingRequests);
+
+        const myPendingRequests = await Connection.find({
+            to_user_id: userId,
+            status: "pending"
+        });
+
+        console.log("MY PENDING REQUESTS:", myPendingRequests);
+
         const user = await User.findById(userId)
             .populate("connections followers following");
 
@@ -345,28 +358,15 @@ export const getUserConnection = async (req, res) => {
             });
         }
 
-        const connections = user.connections;
-        const followers = user.followers;
-        const following = user.following;
-
-        const pendingRequests = await Connection.find({
-            to_user_id: userId,
-            status: "pending"
-        }).populate("from_user_id");
-
-        console.log("PENDING REQUESTS:", pendingRequests);
-
-        const pendingConnections = pendingRequests.map(
+        const pendingConnections = myPendingRequests.map(
             connection => connection.from_user_id
         );
 
-        console.log("PENDING USERS:", pendingConnections);
-
         res.json({
             success: true,
-            connections,
-            followers,
-            following,
+            connections: user.connections,
+            followers: user.followers,
+            following: user.following,
             pendingConnections
         });
 
