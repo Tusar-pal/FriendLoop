@@ -80,7 +80,7 @@ const ChatBox = () => {
     if (!currentUserId) return;
 
     const eventSource = new EventSource(
-      `${import.meta.env.VITE_BACKEND_URL}/api/message/sse/${currentUserId}`,
+      `${import.meta.env.VITE_BACKEND_URL}/api/message/${currentUserId}`,
     );
 
     eventSource.onmessage = (event) => {
