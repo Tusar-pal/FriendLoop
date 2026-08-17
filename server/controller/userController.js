@@ -4,38 +4,96 @@ import User from "../models/user.js";
 import Connection from '../models/Connection.js';
 import Post from '../models/Post.js';
 import { inngest } from '../inngest/index.js';
+import { clerkClient } from '@clerk/express';
 
 // Get user data using userId
 export const getUserData = async (req, res) => {
-    try {
-        const { userId } = req.auth();
+  try {
+    const { userId } = req.auth();
 
-        console.log("🔥 CLERK USER ID:", userId);
+    console.log("🔥🔥 GET USER DATA 🔥🔥");
+    console.log("🔥 CLERK USER ID:", userId);
 
-        const user = await User.findById(userId);
-
-        console.log("🔥 MONGODB USER:", user);
-
-        if (!user) {
-            return res.json({
-                success: false,
-                message: "User not found"
-            });
-        }
-
-        res.json({
-            success: true,
-            user
-        });
-
-    } catch (error) {
-        console.log(error);
-
-        res.json({
-            success: false,
-            message: error.message
-        });
+    if (!userId) {
+      return res.json({
+        success: false,
+        message: "User not authenticated",
+      });
     }
+
+    let user = await User.findById(userId);
+
+    console.log("🔥 MONGODB USER:", user);
+
+    if (user) {
+      return res.json({
+        success: true,
+        user,
+      });
+    }
+
+    console.log("⚠️ USER NOT FOUND IN MONGODB");
+    console.log("🔥 FETCHING USER FROM CLERK...");
+
+    const clerkUser = await clerkClient.users.getUser(userId);
+
+    console.log("🔥 CLERK USER:", clerkUser);
+
+    const primaryEmail = clerkUser.emailAddresses.find(
+      (email) => email.id === clerkUser.primaryEmailAddressId
+    );
+
+    console.log("🔥 PRIMARY EMAIL:", primaryEmail);
+
+    if (!primaryEmail) {
+      return res.json({
+        success: false,
+        message: "Email not found in Clerk",
+      });
+    }
+
+    const email = primaryEmail.emailAddress;
+
+    let username = email.split("@")[0].toLowerCase();
+
+    const usernameExists = await User.findOne({ username });
+
+    if (usernameExists) {
+      username = username + Math.floor(Math.random() * 10000);
+    }
+
+    user = await User.create({
+      _id: clerkUser.id,
+      email,
+      full_name:
+        `${clerkUser.firstName || ""} ${
+          clerkUser.lastName || ""
+        }`.trim() || "User",
+      username,
+      bio: "Hey there! I am using FrindLoop",
+      profile_picture: clerkUser.imageUrl || "",
+      cover_photo: "",
+      location: "",
+      followers: [],
+      following: [],
+      connections: [],
+    });
+
+    console.log("✅ USER CREATED IN MONGODB:", user);
+
+    return res.json({
+      success: true,
+      user,
+    });
+
+  } catch (error) {
+    console.error("❌ GET USER ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
 
 //Update User data
