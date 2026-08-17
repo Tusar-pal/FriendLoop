@@ -17,6 +17,8 @@ export const fetchConnections = createAsyncThunk(
             },
         });
 
+        console.log("CONNECTION API RESPONSE:", data);
+
         return data.success ? data : null;
     }
 );

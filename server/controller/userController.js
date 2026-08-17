@@ -333,8 +333,10 @@ export const getUserConnection = async (req, res) => {
     try {
         const { userId } = req.auth();
 
+        console.log("CURRENT USER ID:", userId);
+
         const user = await User.findById(userId)
-            .populate('connections followers following');
+            .populate("connections followers following");
 
         if (!user) {
             return res.json({
@@ -347,12 +349,18 @@ export const getUserConnection = async (req, res) => {
         const followers = user.followers;
         const following = user.following;
 
-        const pendingConnections = (
-            await Connection.find({
-                to_user_id: userId,
-                status: 'pending'
-            }).populate('from_user_id')
-        ).map(connection => connection.from_user_id);
+        const pendingRequests = await Connection.find({
+            to_user_id: userId,
+            status: "pending"
+        }).populate("from_user_id");
+
+        console.log("PENDING REQUESTS:", pendingRequests);
+
+        const pendingConnections = pendingRequests.map(
+            connection => connection.from_user_id
+        );
+
+        console.log("PENDING USERS:", pendingConnections);
 
         res.json({
             success: true,
@@ -363,9 +371,9 @@ export const getUserConnection = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(error);
+        console.log("GET CONNECTION ERROR:", error);
 
-        res.json({
+        res.status(500).json({
             success: false,
             message: error.message
         });
