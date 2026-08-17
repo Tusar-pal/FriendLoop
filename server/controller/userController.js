@@ -190,28 +190,38 @@ export const updateUserData = async (req, res) => {
 
 // find user using username, email , location, name
 
-export const discoverUsers = async (req,res)=>{
+export const discoverUsers = async (req, res) => {
     try {
-        const {userId} = req.auth();
-        const {input} = req.body;
-        const allUser = await User.find(
-            {
-                $or:[
-                    {username: new RegExp(input,'i')},
-                    {email: new RegExp(input,'i')},
-                    {full_name: new RegExp(input,'i')},
-                    {location: new RegExp(input,'i')},
-                ]
-            }
-        )
-        const filterUsers = allUser.filter(user=>user._id !== userId);
+        const { userId } = req.auth();
+        const { input } = req.body;
 
-        res.json({success:true , users: filteredUsers})
+        const allUser = await User.find({
+            $or: [
+                { username: new RegExp(input, 'i') },
+                { email: new RegExp(input, 'i') },
+                { full_name: new RegExp(input, 'i') },
+                { location: new RegExp(input, 'i') }
+            ]
+        });
+
+        const filteredUsers = allUser.filter(
+            user => user._id.toString() !== userId
+        );
+
+        res.json({
+            success: true,
+            users: filteredUsers
+        });
+
     } catch (error) {
-        console.log(error);
-        res.json({success:false , message:error.message})
+        console.log("DISCOVER USERS ERROR:", error);
+
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
-}
+};
 
 //Follow user
 
