@@ -21,10 +21,11 @@ import { addMessage } from "./features/messages/messagesSlice";
 const App = () => {
   const { user, isLoaded } = useUser();
   const { getToken } = useAuth();
-  const {pathname} = useLocation()
-  const pathnameRef = useRef(pathname)
+  const { pathname } = useLocation();
+  const pathnameRef = useRef(pathname);
   const dispatch = useDispatch();
 
+  // Fetch user and connections
   useEffect(() => {
     const fetchData = async () => {
       if (!isLoaded || !user) {
@@ -36,7 +37,7 @@ const App = () => {
 
         if (token) {
           await dispatch(fetchUser(token)).unwrap();
-          await dispatch(fetchConnections(token))
+          await dispatch(fetchConnections(token));
         }
       } catch (error) {
         console.error("Fetch user error:", error);
@@ -46,6 +47,43 @@ const App = () => {
     fetchData();
   }, [user, isLoaded, getToken, dispatch]);
 
+  // Track current pathname
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
+  // Server Sent Events for messages
+  useEffect(() => {
+    if (!isLoaded || !user) {
+      return;
+    }
+
+    const eventSource = new EventSource(
+      import.meta.env.VITE_BASEURL + "/api/message/" + user.id,
+    );
+
+    eventSource.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+
+        if (pathnameRef.current === "/messages/" + message.from_user_id._id) {
+          dispatch(addMessage(message));
+        }
+      } catch (error) {
+        console.error("SSE message error:", error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("SSE connection error:", error);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [user, isLoaded, dispatch]);
+
+  // Loading screen
   if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -53,28 +91,6 @@ const App = () => {
       </div>
     );
   }
-
-  useEffect(()=>{
-    pathnameRef.current = pathname
-  },[pathname])
-
-  useEffect(()=>{
-    if(user){
-      const eventSource = new EventSource(import.meta.env.VITE_BASEURL + '/api/message/'+user.id);
-      eventSource.onmessage= (event)=>{
-        const message = JSON.parse(event.data)
-
-        if(pathnameRef.current === ('/messages/'+message.from_user_id._id)){
-          dispatch(addMessage(message))
-        }else{
-          
-        }
-      }
-      return ()=>{
-        eventSource.close()
-      }
-    }
-  },[user,dispatch])
 
   return (
     <>
