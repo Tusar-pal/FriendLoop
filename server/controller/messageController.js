@@ -39,66 +39,28 @@ export const sseController = (req,res) =>{
 
 // Send Message
 
-export const sendMessage = async (req, res) => {
-    try {
-        const { userId } = req.auth();
-        const { to_user_id, text } = req.body;
-        const image = req.file;
+const message = await Message.create({
+    from_user_id: userId,
+    to_user_id,
+    text,
+    message_type,
+    media_url
+});
 
-        let media_url = '';
-        let message_type = image ? 'image' : 'text';
+const messageWithUserData = await Message.findById(message._id)
+    .populate('from_user_id')
+    .populate('to_user_id');
 
-        if (message_type === 'image') {
-            const fileBuffer = fs.readFileSync(image.path);
+res.json({
+    success: true,
+    message: messageWithUserData
+});
 
-            const response = await imageKit.upload({
-                file: fileBuffer,
-                fileName: image.originalname,
-            });
-
-            media_url = imageKit.url({
-                path: response.filePath,
-                transformation: [
-                    { quality: 'auto' },
-                    { format: 'webp' },
-                    { width: '1280' },
-                ]
-            });
-        }
-
-        const message = await Message.create({
-            from_user_id: userId,
-            to_user_id,
-            text,
-            message_type,
-            media_url
-        });
-
-        res.json({
-            success: true,
-            message
-        });
-
-        // Send message to receiver using SSE
-        const messageWithUserData = await Message.findById(message._id)
-            .populate('from_user_id')
-            .populate('to_user_id');
-
-        if (connections[to_user_id]) {
-            connections[to_user_id].write(
-                `data: ${JSON.stringify(messageWithUserData)}\n\n`
-            );
-        }
-
-    } catch (error) {
-        console.log(error);
-
-        res.json({
-            success: false,
-            message: error.message
-        });
-    }
-};
+if (connections[to_user_id]) {
+    connections[to_user_id].write(
+        `data: ${JSON.stringify(messageWithUserData)}\n\n`
+    );
+}
 
 
 // Get chat messages
