@@ -109,7 +109,10 @@ export const getChatMessage = async (req, res) => {
                     to_user_id: userId
                 }
             ]
-        }).sort({ created_at: -1 });
+        })
+        .populate('from_user_id')
+        .populate('to_user_id')
+        .sort({ created_at: -1 });
 
         await Message.updateMany(
             {
