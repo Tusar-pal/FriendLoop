@@ -18,7 +18,7 @@ userRouter.post(
     updateUserData
 );
 
-userRouter.post('/dicover',protect,discoverUsers);
+userRouter.post('/discover',protect,discoverUsers);
 userRouter.post('/follow',protect,followUser);
 userRouter.post('/unfollow',protect,unfollowUser);
 
