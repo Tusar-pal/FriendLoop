@@ -43,7 +43,7 @@ const ChatBox = () => {
 
   const sendMessage = async () => {
     try {
-      if (!text && !image) return;
+      if (!text.trim() && !image) return;
 
       const token = await getToken();
 
@@ -56,15 +56,11 @@ const ChatBox = () => {
         formData.append("image", image);
       }
 
-      const { data } = await api.post(
-        "/api/message/get",
-        { to_user_id: userId },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const { data } = await api.post("/api/message/send", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       if (data.success) {
         setText("");
@@ -75,7 +71,8 @@ const ChatBox = () => {
         throw new Error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.log("SEND MESSAGE ERROR:", error);
+      toast.error(error.response?.data?.message || error.message);
     }
   };
 
