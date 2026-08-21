@@ -8,7 +8,7 @@ This project was built to gain hands-on experience with **real-world full-stack 
 
 ## 🌐 Live Demo
 
-🔗 **Live Demo:** [FriendLoop]([YOUR_LIVE_DEMO_URL](https://friend-loop-14g5.vercel.app/))
+🔗 **Live Demo:** [FriendLoop](https://friend-loop-14g5.vercel.app/)
 
 
 ---
