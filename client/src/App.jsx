@@ -26,52 +26,62 @@ const App = () => {
   const pathnameRef = useRef(pathname);
   const dispatch = useDispatch();
 
-  // Fetch user and connections
   useEffect(() => {
     const fetchData = async () => {
-      if (!isLoaded || !user) {
-        return;
-      }
+      if (!isLoaded || !user) return;
 
       try {
         const token = await getToken();
 
-        if (token) {
-          await dispatch(fetchUser(token)).unwrap();
-          await dispatch(fetchConnections(token));
-        }
+        if (!token) return;
+
+        await dispatch(fetchUser(token)).unwrap();
+        await dispatch(fetchConnections(token)).unwrap();
       } catch (error) {
-        console.error("Fetch user error:", error);
+        console.error("Fetch user/connections error:", error);
       }
     };
 
     fetchData();
   }, [user, isLoaded, getToken, dispatch]);
 
-  // Track current pathname
   useEffect(() => {
     pathnameRef.current = pathname;
   }, [pathname]);
 
-  // Server Sent Events for messages
   useEffect(() => {
-    if (!isLoaded || !user) {
-      return;
-    }
+    if (!isLoaded || !user) return;
 
     const eventSource = new EventSource(
-      import.meta.env.VITE_BASEURL + "/api/message/" + user.id,
+      `${import.meta.env.VITE_BASEURL}/api/message/${user.id}`,
     );
 
     eventSource.onmessage = (event) => {
       try {
+        if (!event.data) return;
+
         const message = JSON.parse(event.data);
 
-        if (pathnameRef.current === "/messages/" + message.from_user_id._id) {
+        const senderId =
+          message?.from_user_id?._id ||
+          message?.from_user_id ||
+          message?.senderId;
+
+        if (!senderId) return;
+
+        const currentChatUserId = pathnameRef.current.startsWith("/messages/")
+          ? pathnameRef.current.split("/messages/")[1]
+          : null;
+
+        if (currentChatUserId === senderId) {
           dispatch(addMessage(message));
-        }else{
-          toast.custom((t) =>( <Notification t={t} message={message}/>),{position: "bottom-right"});
+          return;
         }
+
+        toast.custom((t) => <Notification t={t} message={message} />, {
+          position: "bottom-right",
+          duration: 4000,
+        });
       } catch (error) {
         console.error("SSE message error:", error);
       }
@@ -86,7 +96,6 @@ const App = () => {
     };
   }, [user, isLoaded, dispatch]);
 
-  // Loading screen
   if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -102,19 +111,12 @@ const App = () => {
       <Routes>
         <Route path="/" element={!user ? <Login /> : <Layout />}>
           <Route index element={<Feed />} />
-
           <Route path="messages" element={<Messages />} />
-
           <Route path="messages/:userId" element={<ChatBox />} />
-
           <Route path="connections" element={<Connection />} />
-
           <Route path="discover" element={<Discover />} />
-
           <Route path="profile" element={<Profile />} />
-
           <Route path="profile/:profileId" element={<Profile />} />
-
           <Route path="create-post" element={<CreatePost />} />
         </Route>
       </Routes>
