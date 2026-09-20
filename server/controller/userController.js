@@ -457,17 +457,72 @@ export const acceptConnectionRequest = async (req, res) => {
 
 // Get User Profile
 
-export const getUserProfiles = async (req,res)=>{
-    try {
-        const {profileId} = req.body;
-        const profile = await User.findById(profileId);
-        if(!profile){
-            return res.json({success: false , message:"Profile not found"})
-        }
-        const posts = await Post.find({usser: profileId}).populate('user')
-        res.json({success:true , profile, posts})
-    } catch (error) {
-        console.log(error);
-        res.json({success:false , message:error.message});
+export const getUserProfiles = async (req, res) => {
+  try {
+    const { profileId } = req.body;
+
+    console.log("=================================");
+    console.log("GET USER PROFILE");
+    console.log("PROFILE ID:", profileId);
+    console.log("=================================");
+
+    // ---------------------------------------------
+    // Check profileId
+    // ---------------------------------------------
+
+    if (!profileId) {
+      return res.status(400).json({
+        success: false,
+        message: "Profile ID is required",
+      });
     }
-}
+
+    // ---------------------------------------------
+    // Find User
+    // ---------------------------------------------
+
+    const profile = await User.findById(profileId);
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: "Profile not found",
+      });
+    }
+
+    // ---------------------------------------------
+    // Find User Posts
+    // IMPORTANT:
+    // Post model field is `user`
+    // NOT `usser`
+    // ---------------------------------------------
+
+    const posts = await Post.find({
+      user: profileId,
+    })
+      .populate("user")
+      .sort({ createdAt: -1 });
+
+    console.log("PROFILE USER:", profile._id);
+    console.log("PROFILE POSTS COUNT:", posts.length);
+    console.log("PROFILE POSTS:", posts);
+
+    // ---------------------------------------------
+    // Send Response
+    // ---------------------------------------------
+
+    return res.json({
+      success: true,
+      profile,
+      posts,
+    });
+
+  } catch (error) {
+    console.log("GET USER PROFILE ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
