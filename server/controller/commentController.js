@@ -1,7 +1,6 @@
 import Comment from "../models/Comment.js";
 import User from "../models/user.js";
 
-
 // ==========================================
 // ADD COMMENT
 // ==========================================
@@ -19,10 +18,8 @@ export const addComment = async (req, res) => {
       });
     }
 
-    // Clerk ID দিয়ে MongoDB User খুঁজে বের করা
-    const user = await User.findOne({
-      clerkId: userId,
-    });
+    // Clerk userId = User document _id
+    const user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json({
@@ -31,14 +28,14 @@ export const addComment = async (req, res) => {
       });
     }
 
-    // Comment create
+    // Create comment
     const comment = await Comment.create({
       post_id: postId,
       user_id: user._id,
       text: text.trim(),
     });
 
-    // User information populate
+    // Populate user information
     const populatedComment = await Comment.findById(
       comment._id
     ).populate(
@@ -51,7 +48,6 @@ export const addComment = async (req, res) => {
       message: "Comment added successfully",
       comment: populatedComment,
     });
-
   } catch (error) {
     console.log("ADD COMMENT ERROR:", error);
 
@@ -61,7 +57,6 @@ export const addComment = async (req, res) => {
     });
   }
 };
-
 
 // ==========================================
 // GET POST COMMENTS
@@ -84,7 +79,6 @@ export const getPostComments = async (req, res) => {
       success: true,
       comments,
     });
-
   } catch (error) {
     console.log("GET COMMENTS ERROR:", error);
 
