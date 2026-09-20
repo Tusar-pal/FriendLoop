@@ -25,8 +25,23 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: true,
+    origin: [
+      "https://friend-loop-14g5.vercel.app",
+      "http://localhost:5173",
+    ],
     credentials: true,
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+    ],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+    ],
   })
 );
 
@@ -63,11 +78,9 @@ app.use(
 // ========================
 
 app.use("/api/user", userRouter);
-
 app.use("/api/post", postRouter);
 app.use("/api/comment", commentRouter);
 app.use("/api/story", storyRouter);
-
 app.use("/api/message", messageRouter);
 
 
