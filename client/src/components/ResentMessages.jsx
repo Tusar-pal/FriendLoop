@@ -31,25 +31,22 @@ const ResentMessages = () => {
             };
           }
 
-          // Get latest message
-          if (new Date(message.createdAt) > new Date(acc[senderId].createdAt)) {
+          acc[senderId].unreadCount += 1;
+
+          if (
+            new Date(message.created_at) > new Date(acc[senderId].created_at)
+          ) {
             acc[senderId] = {
               ...message,
               unreadCount: acc[senderId].unreadCount,
             };
           }
 
-          // Count unread messages
-          if (!message.seen) {
-            acc[senderId].unreadCount += 1;
-          }
-
           return acc;
         }, {});
 
-        // Sort by latest message
         const sortMessages = Object.values(groupMessages).sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+          (a, b) => new Date(b.created_at) - new Date(a.created_at),
         );
 
         setMessages(sortMessages);

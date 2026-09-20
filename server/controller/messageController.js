@@ -168,6 +168,7 @@ export const getUserRecentMessages = async (req, res) => {
 
         const messages = await Message.find({
             to_user_id: userId,
+            seen: false, // শুধু unread messages
         })
             .populate("from_user_id")
             .populate("to_user_id")
