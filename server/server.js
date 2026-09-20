@@ -13,6 +13,7 @@ import userRouter from "./routes/userrRoutes.js";
 import postRouter from "./routes/postRoutes.js";
 import storyRouter from "./routes/storyRoutes.js";
 import messageRouter from "./routes/messageRoutes.js";
+import commentRouter from "./routes/commentRoutes.js";
 
 const app = express();
 
@@ -64,10 +65,11 @@ app.use(
 app.use("/api/user", userRouter);
 
 app.use("/api/post", postRouter);
-
+app.use("/api/comment", commentRouter);
 app.use("/api/story", storyRouter);
 
 app.use("/api/message", messageRouter);
+
 
 // ========================
 // Export App for Vercel
