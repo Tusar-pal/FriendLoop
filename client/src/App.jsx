@@ -58,30 +58,22 @@ const App = () => {
 
     eventSource.onmessage = (event) => {
       try {
-        if (!event.data) return;
-
         const message = JSON.parse(event.data);
 
-        const senderId =
-          message?.from_user_id?._id ||
-          message?.from_user_id ||
-          message?.senderId;
+        console.log("SSE MESSAGE:", message);
+        console.log("CURRENT PATH:", pathnameRef.current);
+        console.log("SENDER ID:", message?.from_user_id?._id);
 
-        if (!senderId) return;
-
-        const currentChatUserId = pathnameRef.current.startsWith("/messages/")
-          ? pathnameRef.current.split("/messages/")[1]
-          : null;
-
-        if (currentChatUserId === senderId) {
+        if (pathnameRef.current === "/messages/" + message?.from_user_id?._id) {
           dispatch(addMessage(message));
-          return;
-        }
+        } else {
+          console.log("SHOWING NOTIFICATION");
 
-        toast.custom((t) => <Notification t={t} message={message} />, {
-          position: "bottom-right",
-          duration: 4000,
-        });
+          toast.custom((t) => <Notification t={t} message={message} />, {
+            position: "bottom-right",
+            duration: 15000,
+          });
+        }
       } catch (error) {
         console.error("SSE message error:", error);
       }
