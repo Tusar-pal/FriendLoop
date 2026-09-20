@@ -11,30 +11,53 @@ const ResentMessages = () => {
   const {getToken}=useAuth()
   const fetchResentMessages = async () => {
     try {
-      const token = await getToken()
-      const {data} = await api.get('/api/user/recent-messages',{
-        headers:{Authorization:`Bearer ${token}`}
-      })
-      if(data.success){
-        // Group messages by sender and get the latest message for each sender
-        const groupMessages = data.messages.reduce((acc, message)=> {
+      const token = await getToken();
+
+      const { data } = await api.get("/api/user/recent-messages", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (data.success) {
+        // Group messages by sender
+        const groupMessages = data.messages.reduce((acc, message) => {
           const senderId = message.from_user_id._id;
-          if(!acc[senderId] || new Date(message.createdAt)  > new Date(acc[senderId].createdAt)){
-            acc[senderId] = message
+
+          if (!acc[senderId]) {
+            acc[senderId] = {
+              ...message,
+              unreadCount: 0,
+            };
           }
+
+          // Get latest message
+          if (new Date(message.createdAt) > new Date(acc[senderId].createdAt)) {
+            acc[senderId] = {
+              ...message,
+              unreadCount: acc[senderId].unreadCount,
+            };
+          }
+
+          // Count unread messages
+          if (!message.seen) {
+            acc[senderId].unreadCount += 1;
+          }
+
           return acc;
-        },{})
+        }, {});
 
-        // sort messages by date
-        const sortMessages = Object.values(groupMessages).sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt))
+        // Sort by latest message
+        const sortMessages = Object.values(groupMessages).sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+        );
 
-        setMessages(sortMessages)
-
-      }else{
-        toast.error(data.message)
+        setMessages(sortMessages);
+      } else {
+        toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message)
+      toast.error(error.message);
     }
   };
 
@@ -63,14 +86,20 @@ const ResentMessages = () => {
             <div className="w-full">
               <div className="flex justify-between">
                 <p className="font-medium">{message.from_user_id.full_name}</p>
-                <p className="text-[10px] text-slate-400">{moment(message.createdAt).fromNow()}</p>
+                <p className="text-[10px] text-slate-400">
+                  {moment(message.createdAt).fromNow()}
+                </p>
               </div>
 
               <div className="flex justify-between">
-                <p className="text-gray-500">{message.text ? message.text : 'Media'}</p>
-                {
-                    !message.seen && <p className="bg-indigo-500 text-white w-4 h-4 flex items-center justify-center rounded-full text-[10px]">1</p>
-                }
+                <p className="text-gray-500">
+                  {message.text ? message.text : "Media"}
+                </p>
+                {message.unreadCount > 0 && (
+                  <p className="bg-indigo-500 text-white min-w-4 h-4 px-1 flex items-center justify-center rounded-full text-[10px]">
+                    {message.unreadCount}
+                  </p>
+                )}
               </div>
             </div>
           </Link>
