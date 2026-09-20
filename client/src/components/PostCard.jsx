@@ -11,20 +11,35 @@ import api from "../api/axios";
 const PostCard = ({ post }) => {
   const navigate = useNavigate();
 
-  const postWithHashtags = post.content.replace(
+  // =====================================================
+  // USER & AUTH
+  // =====================================================
+
+  const currentUser = useSelector((state) => state.user.value);
+  const { getToken } = useAuth();
+
+  // =====================================================
+  // POST CONTENT
+  // =====================================================
+
+  const postWithHashtags = (post.content || "").replace(
     /(#\w+)/g,
     '<span class="text-indigo-600">$1</span>',
   );
 
-  // =========================
-  // LIKE
-  // =========================
+  // =====================================================
+  // LIKE STATES
+  // =====================================================
 
-  const [likes, setLikes] = useState(post.likes_count);
+  const [likesCount, setLikesCount] = useState(post.likes_count?.length || 0);
 
-  // =========================
+  const [isLiked, setIsLiked] = useState(
+    post.likes_count?.includes(currentUser?._id) || false,
+  );
+
+  // =====================================================
   // COMMENT STATES
-  // =========================
+  // =====================================================
 
   const [showComments, setShowComments] = useState(false);
 
@@ -36,28 +51,27 @@ const PostCard = ({ post }) => {
 
   const [loadingComments, setLoadingComments] = useState(false);
 
-  // =========================
-  // USER & AUTH
-  // =========================
-
-  const currentUser = useSelector((state) => state.user.value);
-
-  const { getToken } = useAuth();
-
   // =====================================================
   // LIKE FUNCTION
   // =====================================================
 
   const handleLike = async () => {
     try {
+      if (!currentUser?._id) {
+        toast.error("Please login first");
+        return;
+      }
+
+      const token = await getToken();
+
       const { data } = await api.post(
-        `/api/post/like`,
+        "/api/post/like",
         {
           postId: post._id,
         },
         {
           headers: {
-            Authorization: `Bearer ${await getToken()}`,
+            Authorization: `Bearer ${token}`,
           },
         },
       );
@@ -65,18 +79,22 @@ const PostCard = ({ post }) => {
       if (data.success) {
         toast.success(data.message);
 
-        setLikes((prev) => {
-          if (prev.includes(currentUser._id)) {
-            return prev.filter((id) => id !== currentUser._id);
-          } else {
-            return [...prev, currentUser._id];
-          }
-        });
+        if (isLiked) {
+          setLikesCount((prev) => Math.max(prev - 1, 0));
+          setIsLiked(false);
+        } else {
+          setLikesCount((prev) => prev + 1);
+          setIsLiked(true);
+        }
       } else {
         toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.log("LIKE ERROR:", error);
+
+      toast.error(
+        error.response?.data?.message || error.message || "Failed to like post",
+      );
     }
   };
 
@@ -97,7 +115,7 @@ const PostCard = ({ post }) => {
       });
 
       if (data.success) {
-        setComments(data.comments);
+        setComments(data.comments || []);
       } else {
         toast.error(data.message);
       }
@@ -120,12 +138,11 @@ const PostCard = ({ post }) => {
   // =====================================================
 
   const handleCommentButton = () => {
-    setShowComments((prev) => !prev);
-
-    // Only fetch when opening comments
     if (!showComments) {
       fetchComments();
     }
+
+    setShowComments((prev) => !prev);
   };
 
   // =====================================================
@@ -133,7 +150,6 @@ const PostCard = ({ post }) => {
   // =====================================================
 
   const handleComment = async () => {
-    // Empty comment check
     if (!comment.trim()) {
       toast.error("Please write a comment");
       return;
@@ -157,10 +173,8 @@ const PostCard = ({ post }) => {
       );
 
       if (data.success) {
-        // Add new comment at top
         setComments((prev) => [data.comment, ...prev]);
 
-        // Clear input
         setComment("");
 
         toast.success("Comment added");
@@ -187,10 +201,38 @@ const PostCard = ({ post }) => {
   const handleCommentKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-
       handleComment();
     }
   };
+
+  // =====================================================
+  // SHARE
+  // =====================================================
+
+  const handleShare = async () => {
+    try {
+      const postUrl = `${window.location.origin}/post/${post._id}`;
+
+      if (navigator.share) {
+        await navigator.share({
+          title: "FriendLoop Post",
+          text: post.content || "Check out this post",
+          url: postUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(postUrl);
+        toast.success("Post link copied");
+      }
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        console.log("SHARE ERROR:", error);
+      }
+    }
+  };
+
+  // =====================================================
+  // UI
+  // =====================================================
 
   return (
     <div className="bg-white rounded-xl shadow p-4 space-y-4 w-full max-w-2xl mt-4">
@@ -199,24 +241,24 @@ const PostCard = ({ post }) => {
       {/* ================================================= */}
 
       <div
-        onClick={() => navigate("/profile/" + post.user._id)}
+        onClick={() => navigate("/profile/" + post.user?._id)}
         className="inline-flex items-center gap-3 cursor-pointer"
       >
         <img
-          src={post.user.profile_picture}
+          src={post.user?.profile_picture}
           alt=""
-          className="w-10 h-10 rounded-full shadow"
+          className="w-10 h-10 rounded-full shadow object-cover"
         />
 
         <div>
           <div className="flex items-center space-x-1">
-            <span>{post.user.full_name}</span>
+            <span>{post.user?.full_name || "User"}</span>
 
             <BadgeCheck className="w-4 h-4 text-blue-500" />
           </div>
 
           <div className="text-gray-500 text-sm">
-            {post.user.email} • {moment(post.createdAt).fromNow()}
+            {post.user?.email || ""} • {moment(post.createdAt).fromNow()}
           </div>
         </div>
       </div>
@@ -238,18 +280,20 @@ const PostCard = ({ post }) => {
       {/* POST IMAGES */}
       {/* ================================================= */}
 
-      <div className="grid grid-cols-2 gap-2">
-        {post.image_urls.map((img, index) => (
-          <img
-            src={img}
-            key={index}
-            alt="image"
-            className={`w-full h-48 object-cover rounded-lg ${
-              post.image_urls.length === 1 && "col-span-2 h-auto"
-            }`}
-          />
-        ))}
-      </div>
+      {post.image_urls?.length > 0 && (
+        <div className="grid grid-cols-2 gap-2">
+          {post.image_urls.map((img, index) => (
+            <img
+              src={img}
+              key={`${post._id}-${index}`}
+              alt="post"
+              className={`w-full h-48 object-cover rounded-lg ${
+                post.image_urls.length === 1 ? "col-span-2 h-auto" : ""
+              }`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* ================================================= */}
       {/* ACTIONS */}
@@ -260,13 +304,13 @@ const PostCard = ({ post }) => {
 
         <div className="flex items-center gap-1">
           <Heart
-            className={`w-4 h-4 cursor-pointer ${
-              likes.includes(currentUser._id) && "text-red-500 fill-red-500"
+            className={`w-4 h-4 cursor-pointer transition ${
+              isLiked ? "text-red-500 fill-red-500" : "hover:text-red-500"
             }`}
             onClick={handleLike}
           />
 
-          <span>{likes.length}</span>
+          <span>{likesCount}</span>
         </div>
 
         {/* ================= COMMENT ================= */}
@@ -282,10 +326,13 @@ const PostCard = ({ post }) => {
 
         {/* ================= SHARE ================= */}
 
-        <div className="flex items-center gap-1">
+        <div
+          className="flex items-center gap-1 cursor-pointer"
+          onClick={handleShare}
+        >
           <Share2 className="w-4 h-4" />
 
-          <span>{7}</span>
+          <span>Share</span>
         </div>
       </div>
 

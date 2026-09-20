@@ -120,3 +120,30 @@ export const likePost = async (req,res)=>{
         res.json({success: false , message: error.message});
     }
 }
+
+// Get Liked Posts
+
+export const getLikedPosts = async (req, res) => {
+    try {
+        const { profileId } = req.params;
+
+        const posts = await Post.find({
+            likes_count: profileId
+        })
+        .populate("user")
+        .sort({ createdAt: -1 });
+
+        res.json({
+            success: true,
+            posts
+        });
+
+    } catch (error) {
+        console.log("GET LIKED POSTS ERROR:", error);
+
+        res.json({
+            success: false,
+            message: error.message
+        });
+    }
+};
