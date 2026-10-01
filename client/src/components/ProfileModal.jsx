@@ -5,7 +5,7 @@ import { updateUser } from "../features/user/userSlice.js";
 import { useAuth } from "@clerk/react";
 import toast from "react-hot-toast";
 
-const ProfileModal = ({ setShowEdit }) => {
+const ProfileModal = ({ setShowEdit, onProfileUpdated }) => {
   const dispatch = useDispatch();
   const { getToken } = useAuth();
 
@@ -114,8 +114,15 @@ const ProfileModal = ({ setShowEdit }) => {
 
       console.log("Updated User:", result);
 
+      // Refresh profile data
+      if (onProfileUpdated) {
+        await onProfileUpdated();
+      }
+
+      toast.success("Profile updated successfully!");
+
       // Close modal
-      setShowEdit(false);
+      setShowEdit(false);;
     } catch (error) {
       console.error("Update profile error:", error);
 

@@ -228,7 +228,29 @@ const Profile = () => {
 
       {/* ================= EDIT PROFILE ================= */}
 
-      {showEdit && <ProfileModal setShowEdit={setShowEdit} />}
+      {showEdit && (
+        <ProfileModal
+          setShowEdit={setShowEdit}
+          onProfileUpdated={async () => {
+            const token = await getToken();
+
+            const { data } = await api.post(
+              "/api/user/profile",
+              { profileId: profileId || currentUser?._id },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              },
+            );
+
+            if (data.success) {
+              setUser(data.profile);
+              setPost(data.posts);
+            }
+          }}
+        />
+      )}
     </div>
   ) : (
     <Loading />

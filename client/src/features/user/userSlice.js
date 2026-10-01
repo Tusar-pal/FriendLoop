@@ -1,9 +1,16 @@
+
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../api/axios.js";
 import toast from "react-hot-toast";
 
+// =========================
+// INITIAL STATE
+// =========================
+
 const initialState = {
   value: null,
+  loading: false,
+  updating: false,
 };
 
 // =========================
@@ -20,19 +27,12 @@ export const fetchUser = createAsyncThunk(
         },
       });
 
-      console.log("USER API RESPONSE:", data);
-
-      if (!data.success) {
-        return rejectWithValue(data.message);
+      if (!data.success || !data.user) {
+        return rejectWithValue(data.message || "User not found");
       }
 
       return data.user;
     } catch (error) {
-      console.log(
-        "FETCH USER ERROR:",
-        error.response?.data || error.message
-      );
-
       return rejectWithValue(
         error.response?.data?.message || error.message
       );
@@ -58,33 +58,20 @@ export const updateUser = createAsyncThunk(
         }
       );
 
-      console.log("UPDATE USER RESPONSE:", data);
-
-      if (!data.success) {
-        toast.error(data.message);
-        return rejectWithValue(data.message);
+      if (!data.success || !data.user) {
+        return rejectWithValue(
+          data.message || "Updated user data not received"
+        );
       }
 
-      toast.success(data.message);
-
-      // Important:
-      // Backend updated user return করছে
       return data.user;
 
     } catch (error) {
-      console.log(
-        "UPDATE USER ERROR:",
-        error.response?.data || error.message
-      );
-
-      const message =
+      return rejectWithValue(
         error.response?.data?.message ||
         error.message ||
-        "Failed to update profile";
-
-      toast.error(message);
-
-      return rejectWithValue(message);
+        "Failed to update profile"
+      );
     }
   }
 );
@@ -95,28 +82,38 @@ export const updateUser = createAsyncThunk(
 
 const userSlice = createSlice({
   name: "user",
-
   initialState,
-
   reducers: {},
 
   extraReducers: (builder) => {
     builder
 
       // FETCH USER
+      .addCase(fetchUser.pending, (state) => {
+        state.loading = true;
+      })
+
       .addCase(fetchUser.fulfilled, (state, action) => {
+        state.loading = false;
         state.value = action.payload;
       })
 
       .addCase(fetchUser.rejected, (state) => {
-        state.value = null;
+        state.loading = false;
       })
 
       // UPDATE USER
-      .addCase(updateUser.fulfilled, (state, action) => {
-        console.log("REDUX UPDATED USER:", action.payload);
+      .addCase(updateUser.pending, (state) => {
+        state.updating = true;
+      })
 
+      .addCase(updateUser.fulfilled, (state, action) => {
+        state.updating = false;
         state.value = action.payload;
+      })
+
+      .addCase(updateUser.rejected, (state) => {
+        state.updating = false;
       });
   },
 });
