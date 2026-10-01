@@ -228,29 +228,12 @@ const Profile = () => {
 
       {/* ================= EDIT PROFILE ================= */}
 
-      {showEdit && (
-        <ProfileModal
-          setShowEdit={setShowEdit}
-          onProfileUpdated={async () => {
-            const token = await getToken();
-
-            const { data } = await api.post(
-              "/api/user/profile",
-              { profileId: profileId || currentUser?._id },
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              },
-            );
-
-            if (data.success) {
-              setUser(data.profile);
-              setPost(data.posts);
-            }
-          }}
-        />
-      )}
+{showEdit && (
+  <ProfileModal
+    setShowEdit={setShowEdit}
+    onProfileUpdated={() => fetchUser(profileId || currentUser?._id)}
+  />
+)}
     </div>
   ) : (
     <Loading />
